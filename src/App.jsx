@@ -109,7 +109,7 @@ function App() {
 
   useEffect(() => {
     const fetchStories = async () => {
-      const response = await axios.get('http://localhost:3000/api/stories');
+      const response = await axios.get('https://bharat-story-backend.vercel.app/api/stories');
       setStories(response.data);
     };
     fetchStories();
@@ -122,7 +122,7 @@ function App() {
     if (newStory.storyCoverImage) formData.append('storyCoverImage', newStory.storyCoverImage);
     if (newStory.bannerImge) formData.append('bannerImge', newStory.bannerImge);
 
-    const response = await axios.post('http://localhost:3000/api/stories', formData);
+    const response = await axios.post('https://bharat-story-backend.vercel.app/api/stories', formData);
     setStories((prev) => [...prev, response.data.story]);
     setModal({ show: true, message: 'Story added successfully!' });
     setTimeout(() => {
@@ -164,7 +164,7 @@ function App() {
       console.log(`${pair[0]}: ${pair[1]}`);
     }
   
-    const response = await axios.post('http://localhost:3000/api/parts', formData);
+    const response = await axios.post('https://bharat-story-backend.vercel.app/api/parts', formData);
     setStories((prev) =>
       prev.map((s) =>
         s.id === story.id ? { ...s, parts: { card: [...s.parts.card, response.data.part] } } : s
@@ -208,7 +208,7 @@ function App() {
       console.log(`${pair[0]}: ${pair[1]}`);
     }
   
-    const response = await axios.post('http://localhost:3000/api/parts', formData);
+    const response = await axios.post('https://bharat-story-backend.vercel.app/api/parts', formData);
     setStories((prev) =>
       prev.map((s) =>
         s.id === story.id
@@ -225,7 +225,7 @@ function App() {
 
   const deletePart = async (storyName, partId) => {
     const story = stories.find((s) => s.name.en === storyName);
-    await axios.delete(`http://localhost:3000/api/parts/${story.id}/${partId}`);
+    await axios.delete(`https://bharat-story-backend.vercel.app/api/parts/${story.id}/${partId}`);
     setStories((prev) =>
       prev.map((s) =>
         s.id === story.id

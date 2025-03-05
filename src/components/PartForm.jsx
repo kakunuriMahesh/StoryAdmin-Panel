@@ -2,7 +2,6 @@ import React, { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { v4 as uuidv4 } from "uuid";
 import { useLocation, useNavigate } from "react-router-dom";
-import axios from "axios";
 import {
   Upload,
   X,
@@ -16,7 +15,7 @@ import {
   Minus,
 } from "lucide-react";
 
-const PartForm = ({ stories, setStories }) => {
+const PartForm = ({ stories, addPart, updatePart, deletePart }) => {
   const {
     register,
     handleSubmit,
@@ -86,136 +85,18 @@ const PartForm = ({ stories, setStories }) => {
     }
   }, [location, stories, setValue]);
 
-  const addPart = async (storyName, newPart) => {
-    const formData = new FormData();
-    formData.append('storyId', stories.find((s) => s.name.en === storyName).id);
-    formData.append('id', newPart.id);
-    formData.append('titleEn', newPart.title.en || '');
-    formData.append('titleTe', newPart.title.te || '');
-    formData.append('dateEn', newPart.date.en || '');
-    formData.append('dateTe', newPart.date.te || '');
-    formData.append('descriptionEn', newPart.description.en || '');
-    formData.append('descriptionTe', newPart.description.te || '');
-    formData.append('timeToReadEn', newPart.timeToRead.en || '');
-    formData.append('timeToReadTe', newPart.timeToRead.te || '');
-    formData.append('storyTypeEn', newPart.storyType.en || '');
-    formData.append('storyTypeTe', newPart.storyType.te || '');
-
-    if (newPart.thumbnailImage && typeof newPart.thumbnailImage !== 'string') {
-      formData.append('thumbnailImage', newPart.thumbnailImage);
-    }
-    if (newPart.coverImage && typeof newPart.coverImage !== 'string') {
-      formData.append('coverImage', newPart.coverImage);
-    }
-
-    newPart.part.forEach((p, index) => {
-      formData.append(`id${index}`, p.id);
-      formData.append(`partHeadingEn${index}`, p.heading.en || '');
-      formData.append(`partHeadingTe${index}`, p.heading.te || '');
-      formData.append(`partQuoteEn${index}`, p.quote.en || '');
-      formData.append(`partQuoteTe${index}`, p.quote.te || '');
-      formData.append(`partTextEn${index}`, p.text.en || '');
-      formData.append(`partTextTe${index}`, p.text.te || '');
-      if (p.image && typeof p.image !== 'string') {
-        formData.append(`partImage${index}`, p.image);
-      }
-    });
-
-    try {
-      const response = await axios.post('https://api.bharatstorybooks.com/api/parts', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      });
-      const updatedStories = stories.map((s) =>
-        s.name.en === storyName
-          ? { ...s, parts: { card: [...s.parts.card, response.data.part] } }
-          : s
-      );
-      setStories(updatedStories);
-    } catch (error) {
-      console.error("Error adding part:", error);
-    }
+  const addNewPart = () => {
+    setParts((prev) => [...prev, { id: uuidv4() }]);
   };
 
-  const updatePart = async (storyName, partId, updatedPart) => {
-    const formData = new FormData();
-    formData.append('storyId', stories.find((s) => s.name.en === storyName).id);
-    formData.append('partId', partId);
-    formData.append('titleEn', updatedPart.title.en || '');
-    formData.append('titleTe', updatedPart.title.te || '');
-    formData.append('dateEn', updatedPart.date.en || '');
-    formData.append('dateTe', updatedPart.date.te || '');
-    formData.append('descriptionEn', updatedPart.description.en || '');
-    formData.append('descriptionTe', updatedPart.description.te || '');
-    formData.append('timeToReadEn', updatedPart.timeToRead.en || '');
-    formData.append('timeToReadTe', updatedPart.timeToRead.te || '');
-    formData.append('storyTypeEn', updatedPart.storyType.en || '');
-    formData.append('storyTypeTe', updatedPart.storyType.te || '');
-
-    if (updatedPart.thumbnailImage && typeof updatedPart.thumbnailImage !== 'string') {
-      formData.append('thumbnailImage', updatedPart.thumbnailImage);
-    } else if (updatedPart.thumbnailImage) {
-      formData.append('thumbnailImage', updatedPart.thumbnailImage);
-    }
-    if (updatedPart.coverImage && typeof updatedPart.coverImage !== 'string') {
-      formData.append('coverImage', updatedPart.coverImage);
-    } else if (updatedPart.coverImage) {
-      formData.append('coverImage', updatedPart.coverImage);
-    }
-
-    updatedPart.part.forEach((p, index) => {
-      formData.append(`id${index}`, p.id);
-      formData.append(`partHeadingEn${index}`, p.heading.en || '');
-      formData.append(`partHeadingTe${index}`, p.heading.te || '');
-      formData.append(`partQuoteEn${index}`, p.quote.en || '');
-      formData.append(`partQuoteTe${index}`, p.quote.te || '');
-      formData.append(`partTextEn${index}`, p.text.en || '');
-      formData.append(`partTextTe${index}`, p.text.te || '');
-      if (p.image && typeof p.image !== 'string') {
-        formData.append(`partImage${index}`, p.image);
-      } else if (p.image) {
-        formData.append(`partImage${index}`, p.image);
-      }
+  const removePart = (partId) => {
+    setParts((prev) => prev.filter((p) => p.id !== partId));
+    setImages((prev) => {
+      const newImages = { ...prev };
+      const index = parts.findIndex((p) => p.id === partId);
+      delete newImages[`partImage${index}`];
+      return newImages;
     });
-
-    try {
-      const response = await axios.post('https://api.bharatstorybooks.com/api/parts', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      });
-      const updatedStories = stories.map((s) =>
-        s.name.en === storyName
-          ? {
-              ...s,
-              parts: {
-                card: s.parts.card.map((p) =>
-                  p.id === partId ? response.data.part : p
-                ),
-              },
-            }
-          : s
-      );
-      setStories(updatedStories);
-    } catch (error) {
-      console.error("Error updating part:", error);
-    }
-  };
-
-  const deletePart = async (storyName, partId) => {
-    try {
-      await axios.delete(
-        `https://api.bharatstorybooks.com/api/parts/${stories.find((s) => s.name.en === storyName).id}/${partId}`
-      );
-      const updatedStories = stories.map((s) =>
-        s.name.en === storyName
-          ? {
-              ...s,
-              parts: { card: s.parts.card.filter((p) => p.id !== partId) },
-            }
-          : s
-      );
-      setStories(updatedStories);
-    } catch (error) {
-      console.error("Error deleting part:", error);
-    }
   };
 
   const onSubmit = (data) => {
@@ -246,20 +127,6 @@ const PartForm = ({ stories, setStories }) => {
     setImages({});
     setParts([{ id: uuidv4() }]);
     navigate('/my-stories');
-  };
-
-  const addNewPart = () => {
-    setParts((prev) => [...prev, { id: uuidv4() }]);
-  };
-
-  const removePart = (partId) => {
-    setParts((prev) => prev.filter((p) => p.id !== partId));
-    setImages((prev) => {
-      const newImages = { ...prev };
-      const index = parts.findIndex((p) => p.id === partId);
-      delete newImages[`partImage${index}`];
-      return newImages;
-    });
   };
 
   const handleDelete = () => {
