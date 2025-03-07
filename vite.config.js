@@ -7,4 +7,7 @@ export default defineConfig({
     outDir: 'dist',
   },
   base: '/',
+  css: {
+    postcss: './postcss.config.js', // Explicitly point to PostCSS config
+  },
 });
