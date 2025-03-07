@@ -11,8 +11,11 @@
   ],
   "routes": [
     {
-      "src": "/assets/(.*)",
-      "dest": "/dist/assets/$1"
+      "src": "^/assets/(.*)$",
+      "dest": "/dist/assets/$1",
+      "headers": {
+        "Content-Type": "application/javascript"
+      }
     },
     {
       "src": "/(.*)",
