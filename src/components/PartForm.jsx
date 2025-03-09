@@ -429,7 +429,7 @@ const PartForm = ({ stories, addPart, updatePart, deletePart }) => {
                 )}
               </div>
 
-              <h3 className="text-xl font-semibold mt-4 mb-2">Part Details</h3>
+              <h3 className="text-xl font-semibold mt-4 mb-2">Section Details</h3>
               {parts.map((part, index) => (
                 <div key={part.id} className="relative border p-4 mb-4 rounded">
                   {index > 0 && (
@@ -546,7 +546,7 @@ const PartForm = ({ stories, addPart, updatePart, deletePart }) => {
                     )}
                   </div>
                   <div className="mt-4">
-                    <label className="block font-semibold">Part Image</label>
+                    <label className="block font-semibold">Section Image</label>
                     <div className="relative">
                       <ImageIcon size={20} className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-500" />
                       <input
