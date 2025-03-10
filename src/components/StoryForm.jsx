@@ -1,15 +1,38 @@
-// src/components/StoryForm.jsx
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { FaTrash } from 'react-icons/fa'; // For remove icon
 
-const StoryForm = ({ addStory }) => {
+const StoryForm = ({ addStory, storyToEdit, updateStory }) => {
+  console.log(addStory, 'addstory check');
   const [formData, setFormData] = useState({
     nameEn: '',
     nameTe: '',
     nameHi: '',
     languages: [],
-    storyCoverImage: null,
-    bannerImge: null,
+    storyCoverImage: '', // URL or File
+    bannerImge: '', // URL or File
   });
+  const [previews, setPreviews] = useState({
+    storyCoverImage: '',
+    bannerImge: '',
+  });
+  const [errors, setErrors] = useState({});
+
+  useEffect(() => {
+    if (storyToEdit) {
+      setFormData({
+        nameEn: storyToEdit.name.en || '',
+        nameTe: storyToEdit.name.te || '',
+        nameHi: storyToEdit.name.hi || '',
+        languages: storyToEdit.languages || [],
+        storyCoverImage: storyToEdit.storyCoverImage || '', // From DB
+        bannerImge: storyToEdit.bannerImge || '', // From DB
+      });
+      setPreviews({
+        storyCoverImage: storyToEdit.storyCoverImage || '',
+        bannerImge: storyToEdit.bannerImge || '',
+      });
+    }
+  }, [storyToEdit]);
 
   const handleChange = (e) => {
     const { name, value, type, checked, files } = e.target;
@@ -19,44 +42,73 @@ const StoryForm = ({ addStory }) => {
         : formData.languages.filter((lang) => lang !== value);
       setFormData({ ...formData, languages: newLanguages });
     } else if (type === 'file') {
-      setFormData({ ...formData, [name]: files[0] });
+      const file = files[0];
+      setFormData({ ...formData, [name]: file || '' });
+      setPreviews({
+        ...previews,
+        [name]: file ? URL.createObjectURL(file) : '',
+      });
+      setErrors({ ...errors, [name]: '' }); // Clear error on file change
     } else {
       setFormData({ ...formData, [name]: value });
     }
   };
 
+  const handleRemoveImage = (field) => {
+    setFormData({ ...formData, [field]: '' });
+    setPreviews({ ...previews, [field]: '' });
+  };
+
   const validateForm = () => {
-    const errors = [];
-    formData.languages.forEach((lang) => {
-      if (!formData[`name${lang.charAt(0).toUpperCase() + lang.slice(1)}`]) {
-        errors.push(`Name (${lang}) is required`);
-      }
-    });
-    return errors;
+    const newErrors = {};
+    if (!formData.storyCoverImage) newErrors.storyCoverImage = 'Story Cover Image is required';
+    if (!formData.bannerImge) newErrors.bannerImge = 'Banner Image is required';
+    if (!formData.languages.length) newErrors.languages = 'At least one language is required';
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    const errors = validateForm();
-    if (errors.length > 0) {
-      alert(`Please fill in all required fields:\n${errors.join('\n')}`);
-      return;
-    }
+    if (!validateForm()) return;
 
     const data = new FormData();
     data.append('nameEn', formData.nameEn);
     data.append('nameTe', formData.nameTe);
     data.append('nameHi', formData.nameHi);
     data.append('languages', JSON.stringify(formData.languages));
-    if (formData.storyCoverImage) data.append('storyCoverImage', formData.storyCoverImage);
-    if (formData.bannerImge) data.append('bannerImge', formData.bannerImge);
+    if (typeof formData.storyCoverImage === 'string' && formData.storyCoverImage) {
+      data.append('storyCoverImage', formData.storyCoverImage); // Existing URL
+    } else if (formData.storyCoverImage) {
+      data.append('storyCoverImage', formData.storyCoverImage); // New file
+    }
+    if (typeof formData.bannerImge === 'string' && formData.bannerImge) {
+      data.append('bannerImge', formData.bannerImge); // Existing URL
+    } else if (formData.bannerImge) {
+      data.append('bannerImge', formData.bannerImge); // New file
+    }
 
-    addStory(data);
+    if (storyToEdit) {
+      updateStory(storyToEdit.id, data);
+    } else {
+      addStory(data);
+    }
+
+    setFormData({
+      nameEn: '',
+      nameTe: '',
+      nameHi: '',
+      languages: [],
+      storyCoverImage: '',
+      bannerImge: '',
+    });
+    setPreviews({ storyCoverImage: '', bannerImge: '' });
+    setErrors({});
   };
 
   return (
     <div className="p-4">
-      <h2 className="text-2xl mb-4">Add Story</h2>
+      <h2 className="text-2xl mb-4">{storyToEdit ? 'Edit Story' : 'Add Story'}</h2>
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
           <label>English Name:</label>
@@ -125,17 +177,44 @@ const StoryForm = ({ addStory }) => {
               Hindi
             </label>
           </div>
+          {errors.languages && <p className="text-red-500">{errors.languages}</p>}
         </div>
         <div>
           <label>Story Cover Image:</label>
-          <input type="file" name="storyCoverImage" onChange={handleChange} />
+          <input type="file" name="storyCoverImage" onChange={handleChange} accept="image/*" />
+          {previews.storyCoverImage && (
+            <div className="mt-2 flex items-center">
+              <img src={previews.storyCoverImage} alt="Cover Preview" className="max-w-xs h-auto" />
+              <button
+                type="button"
+                onClick={() => handleRemoveImage('storyCoverImage')}
+                className="ml-2 text-red-500"
+              >
+                <FaTrash />
+              </button>
+            </div>
+          )}
+          {errors.storyCoverImage && <p className="text-red-500">{errors.storyCoverImage}</p>}
         </div>
         <div>
           <label>Banner Image:</label>
-          <input type="file" name="bannerImge" onChange={handleChange} />
+          <input type="file" name="bannerImge" onChange={handleChange} accept="image/*" />
+          {previews.bannerImge && (
+            <div className="mt-2 flex items-center">
+              <img src={previews.bannerImge} alt="Banner Preview" className="max-w-xs h-auto" />
+              <button
+                type="button"
+                onClick={() => handleRemoveImage('bannerImge')}
+                className="ml-2 text-red-500"
+              >
+                <FaTrash />
+              </button>
+            </div>
+          )}
+          {errors.bannerImge && <p className="text-red-500">{errors.bannerImge}</p>}
         </div>
         <button type="submit" className="bg-blue-500 text-white p-2 rounded">
-          Add Story
+          {storyToEdit ? 'Update Story' : 'Add Story'}
         </button>
       </form>
     </div>
@@ -143,6 +222,236 @@ const StoryForm = ({ addStory }) => {
 };
 
 export default StoryForm;
+
+// ----- updated code without image preview and url -----
+
+// import React, { useState } from 'react';
+
+// const StoryForm = ({ addStory }) => {
+//   const [formData, setFormData] = useState({
+//     nameEn: '',
+//     nameTe: '',
+//     nameHi: '',
+//     languages: [],
+//     storyCoverImage: null,
+//     bannerImge: null,
+//   });
+//   const [previews, setPreviews] = useState({
+//     storyCoverImage: null,
+//     bannerImge: null,
+//   });
+
+//   const handleChange = (e) => {
+//     const { name, value, type, checked, files } = e.target;
+//     if (type === 'checkbox' && name === 'languages') {
+//       const newLanguages = checked
+//         ? [...formData.languages, value]
+//         : formData.languages.filter((lang) => lang !== value);
+//       setFormData({ ...formData, languages: newLanguages });
+//     } else if (type === 'file') {
+//       const file = files[0];
+//       setFormData({ ...formData, [name]: file });
+//       setPreviews({ ...previews, [name]: file ? URL.createObjectURL(file) : null });
+//     } else {
+//       setFormData({ ...formData, [name]: value });
+//     }
+//   };
+
+//   const removeImage = (field) => {
+//     setFormData({ ...formData, [field]: null });
+//     setPreviews({ ...previews, [field]: null });
+//   };
+
+//   const validateForm = () => {
+//     const errors = [];
+//     formData.languages.forEach((lang) => {
+//       if (!formData[`name${lang.charAt(0).toUpperCase() + lang.slice(1)}`]) {
+//         errors.push(`Name (${lang}) is required`);
+//       }
+//     });
+//     return errors;
+//   };
+
+//   const handleSubmit = (e) => {
+//     e.preventDefault();
+//     const errors = validateForm();
+//     if (errors.length > 0) {
+//       alert(`Please fill in all required fields:\n${errors.join('\n')}`);
+//       return;
+//     }
+
+//     const data = new FormData();
+//     data.append('nameEn', formData.nameEn);
+//     data.append('nameTe', formData.nameTe);
+//     data.append('nameHi', formData.nameHi);
+//     data.append('languages', JSON.stringify(formData.languages));
+//     if (formData.storyCoverImage) data.append('storyCoverImage', formData.storyCoverImage);
+//     if (formData.bannerImge) data.append('bannerImge', formData.bannerImge);
+
+//     addStory(data);
+
+//     setFormData({
+//       nameEn: '',
+//       nameTe: '',
+//       nameHi: '',
+//       languages: [],
+//       storyCoverImage: null,
+//       bannerImge: null,
+//     });
+//     setPreviews({
+//       storyCoverImage: null,
+//       bannerImge: null,
+//     });
+//   };
+
+//   return (
+//     <div className="p-4">
+//       <h2 className="text-2xl mb-4">Add Story</h2>
+//       <form onSubmit={handleSubmit} className="space-y-4">
+//         <div>
+//           <label>English Name:</label>
+//           <input
+//             type="text"
+//             name="nameEn"
+//             value={formData.nameEn}
+//             onChange={handleChange}
+//             className="border p-2 w-full"
+//             disabled={!formData.languages.includes('en')}
+//           />
+//         </div>
+//         <div>
+//           <label>Telugu Name:</label>
+//           <input
+//             type="text"
+//             name="nameTe"
+//             value={formData.nameTe}
+//             onChange={handleChange}
+//             className="border p-2 w-full"
+//             disabled={!formData.languages.includes('te')}
+//           />
+//         </div>
+//         <div>
+//           <label>Hindi Name:</label>
+//           <input
+//             type="text"
+//             name="nameHi"
+//             value={formData.nameHi}
+//             onChange={handleChange}
+//             className="border p-2 w-full"
+//             disabled={!formData.languages.includes('hi')}
+//           />
+//         </div>
+//         <div>
+//           <label>Languages:</label>
+//           <div>
+//             <label>
+//               <input
+//                 type="checkbox"
+//                 name="languages"
+//                 value="en"
+//                 checked={formData.languages.includes('en')}
+//                 onChange={handleChange}
+//               />
+//               English
+//             </label>
+//             <label>
+//               <input
+//                 type="checkbox"
+//                 name="languages"
+//                 value="te"
+//                 checked={formData.languages.includes('te')}
+//                 onChange={handleChange}
+//               />
+//               Telugu
+//             </label>
+//             <label>
+//               <input
+//                 type="checkbox"
+//                 name="languages"
+//                 value="hi"
+//                 checked={formData.languages.includes('hi')}
+//                 onChange={handleChange}
+//               />
+//               Hindi
+//             </label>
+//           </div>
+//         </div>
+//         <div>
+//           <label>Story Cover Image:</label>
+//           <input type="file" name="storyCoverImage" onChange={handleChange} accept="image/*" />
+//           {previews.storyCoverImage && (
+//             <div className="mt-2 relative inline-block">
+//               <img
+//                 src={previews.storyCoverImage}
+//                 alt="Story Cover Preview"
+//                 className="max-w-xs h-auto"
+//               />
+//               <button
+//                 type="button"
+//                 onClick={() => removeImage('storyCoverImage')}
+//                 className="absolute top-0 right-0 text-red-500 hover:text-red-700"
+//               >
+//                 <svg
+//                   xmlns="http://www.w3.org/2000/svg"
+//                   width="20"
+//                   height="20"
+//                   viewBox="0 0 24 24"
+//                   fill="none"
+//                   stroke="currentColor"
+//                   strokeWidth="2"
+//                   strokeLinecap="round"
+//                   strokeLinejoin="round"
+//                 >
+//                   <path d="M18 6L6 18M6 6l12 12" />
+//                 </svg>
+//               </button>
+//             </div>
+//           )}
+//         </div>
+//         <div>
+//           <label>Banner Image:</label>
+//           <input type="file" name="bannerImge" onChange={handleChange} accept="image/*" />
+//           {previews.bannerImge && (
+//             <div className="mt-2 relative inline-block">
+//               <img
+//                 src={previews.bannerImge}
+//                 alt="Banner Preview"
+//                 className="max-w-xs h-auto"
+//               />
+//               <button
+//                 type="button"
+//                 onClick={() => removeImage('bannerImge')}
+//                 className="absolute top-0 right-0 text-red-500 hover:text-red-700"
+//               >
+//                 <svg
+//                   xmlns="http://www.w3.org/2000/svg"
+//                   width="20"
+//                   height="20"
+//                   viewBox="0 0 24 24"
+//                   fill="none"
+//                   stroke="currentColor"
+//                   strokeWidth="2"
+//                   strokeLinecap="round"
+//                   strokeLinejoin="round"
+//                 >
+//                   <path d="M18 6L6 18M6 6l12 12" />
+//                 </svg>
+//               </button>
+//             </div>
+//           )}
+//         </div>
+//         <button type="submit" className="bg-blue-500 text-white p-2 rounded">
+//           Add Story
+//         </button>
+//       </form>
+//     </div>
+//   );
+// };
+
+// export default StoryForm;
+
+
+// ----- begin original code -----
 
 // import React, { useState } from 'react';
 // import { useLocation } from 'react-router-dom';

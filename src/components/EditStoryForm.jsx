@@ -1,8 +1,8 @@
-// src/components/EditStoryForm.jsx
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import Cookies from 'js-cookie';
+import { FaTrash } from 'react-icons/fa'; // For remove icon
 
 const EditStoryForm = ({ updateStory, deleteStory }) => {
   const { id } = useParams();
@@ -13,26 +13,40 @@ const EditStoryForm = ({ updateStory, deleteStory }) => {
     nameTe: '',
     nameHi: '',
     languages: [],
-    storyCoverImage: null,
-    bannerImge: null,
+    storyCoverImage: '', // URL or File
+    bannerImge: '', // URL or File
   });
-  const [removeLanguages, setRemoveLanguages] = useState([]); // Track languages to remove
+  const [previews, setPreviews] = useState({
+    storyCoverImage: '',
+    bannerImge: '',
+  });
+  const [removeLanguages, setRemoveLanguages] = useState([]);
+  const [errors, setErrors] = useState({});
 
   useEffect(() => {
     const fetchStory = async () => {
-      const token = Cookies.get('token');
-      const response = await axios.get(`${import.meta.env.VITE_API_URL}/stories/${id}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      setStory(response.data);
-      setFormData({
-        nameEn: response.data.name.en || '',
-        nameTe: response.data.name.te || '',
-        nameHi: response.data.name.hi || '',
-        languages: response.data.languages || [],
-        storyCoverImage: null,
-        bannerImge: null,
-      });
+      try {
+        const token = Cookies.get('token');
+        const response = await axios.get(`${import.meta.env.VITE_API_URL}/stories/${id}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        console.log('Fetched story:', response.data); // Debug response
+        setStory(response.data);
+        setFormData({
+          nameEn: response.data.name?.en || '',
+          nameTe: response.data.name?.te || '',
+          nameHi: response.data.name?.hi || '',
+          languages: response.data.languages || [],
+          storyCoverImage: response.data.storyCoverImage || '', // From DB
+          bannerImge: response.data.bannerImge || '', // From DB
+        });
+        setPreviews({
+          storyCoverImage: response.data.storyCoverImage || '',
+          bannerImge: response.data.bannerImge || '',
+        });
+      } catch (err) {
+        console.error('Error fetching story:', err);
+      }
     };
     fetchStory();
   }, [id]);
@@ -44,32 +58,65 @@ const EditStoryForm = ({ updateStory, deleteStory }) => {
         ? [...formData.languages, value]
         : formData.languages.filter((lang) => lang !== value);
 
-      // Check if a language is being removed
-      if (!checked && story.languages.includes(value)) {
+      if (!checked && story?.languages.includes(value)) {
         setRemoveLanguages([...removeLanguages, value]);
       } else {
         setRemoveLanguages(removeLanguages.filter((lang) => lang !== value));
       }
 
-      setFormData({ ...formData, languages: newLanguages });
+      setFormData((prev) => ({ ...prev, languages: newLanguages }));
     } else if (type === 'file') {
-      setFormData({ ...formData, [name]: files[0] });
+      const file = files[0];
+      console.log(`File selected for ${name}:`, file); // Debug file upload
+      if (file) {
+        setFormData((prev) => ({ ...prev, [name]: file }));
+        setPreviews((prev) => ({
+          ...prev,
+          [name]: URL.createObjectURL(file),
+        }));
+        setErrors((prev) => ({ ...prev, [name]: '' }));
+      }
     } else {
-      setFormData({ ...formData, [name]: value });
+      setFormData((prev) => ({ ...prev, [name]: value }));
     }
+  };
+
+  const handleRemoveImage = (field) => {
+    console.log(`Removing image for ${field}`); // Debug removal
+    setFormData((prev) => ({ ...prev, [field]: '' }));
+    setPreviews((prev) => ({ ...prev, [field]: '' }));
+  };
+
+  const validateForm = () => {
+    const newErrors = {};
+    if (!formData.storyCoverImage) newErrors.storyCoverImage = 'Story Cover Image is required';
+    if (!formData.bannerImge) newErrors.bannerImge = 'Banner Image is required';
+    if (!formData.languages.length) newErrors.languages = 'At least one language is required';
+    setErrors(newErrors);
+    console.log('Validation errors:', newErrors); // Debug validation
+    return Object.keys(newErrors).length === 0;
   };
 
   const confirmAction = async (e) => {
     e.preventDefault();
+    if (!validateForm()) return;
+
     const data = new FormData();
     data.append('nameEn', formData.nameEn);
     data.append('nameTe', formData.nameTe);
     data.append('nameHi', formData.nameHi);
     data.append('languages', JSON.stringify(formData.languages));
-    if (formData.storyCoverImage) data.append('storyCoverImage', formData.storyCoverImage);
-    if (formData.bannerImge) data.append('bannerImge', formData.bannerImge);
+    if (typeof formData.storyCoverImage === 'string' && formData.storyCoverImage) {
+      data.append('storyCoverImage', formData.storyCoverImage); // Existing URL
+    } else if (formData.storyCoverImage) {
+      data.append('storyCoverImage', formData.storyCoverImage); // New file
+    }
+    if (typeof formData.bannerImge === 'string' && formData.bannerImge) {
+      data.append('bannerImge', formData.bannerImge); // Existing URL
+    } else if (formData.bannerImge) {
+      data.append('bannerImge', formData.bannerImge); // New file
+    }
 
-    // Handle language removal confirmation
     if (removeLanguages.length > 0) {
       const confirmRemove = window.confirm(
         `Do you want to remove the following languages: ${removeLanguages.join(', ')}? ` +
@@ -77,22 +124,25 @@ const EditStoryForm = ({ updateStory, deleteStory }) => {
       );
       if (confirmRemove) {
         data.append('removeLanguages', JSON.stringify(removeLanguages));
-        data.append('deleteContent', 'true'); // Flag to delete content
+        data.append('deleteContent', 'true');
         await updateStory(id, data);
+        setRemoveLanguages([]); // Reset after successful update
       } else {
-        // Reset languages to original if "No" is clicked
-        setFormData({ ...formData, languages: story.languages });
+        setFormData((prev) => ({ ...prev, languages: story.languages }));
         setRemoveLanguages([]);
         return;
       }
     } else {
       await updateStory(id, data);
     }
+
+    navigate('/'); // Redirect after update
   };
 
   const handleDelete = () => {
     if (window.confirm('Are you sure you want to delete this story?')) {
       deleteStory(id);
+      navigate('/');
     }
   };
 
@@ -169,14 +219,41 @@ const EditStoryForm = ({ updateStory, deleteStory }) => {
               Hindi
             </label>
           </div>
+          {errors.languages && <p className="text-red-500">{errors.languages}</p>}
         </div>
         <div>
           <label>Story Cover Image:</label>
-          <input type="file" name="storyCoverImage" onChange={handleChange} />
+          <input type="file" name="storyCoverImage" onChange={handleChange} accept="image/*" />
+          {previews.storyCoverImage && (
+            <div className="mt-2 flex items-center">
+              <img src={previews.storyCoverImage} alt="Cover Preview" className="max-w-xs h-auto" />
+              <button
+                type="button"
+                onClick={() => handleRemoveImage('storyCoverImage')}
+                className="ml-2 text-red-500"
+              >
+                <FaTrash />
+              </button>
+            </div>
+          )}
+          {errors.storyCoverImage && <p className="text-red-500">{errors.storyCoverImage}</p>}
         </div>
         <div>
           <label>Banner Image:</label>
-          <input type="file" name="bannerImge" onChange={handleChange} />
+          <input type="file" name="bannerImge" onChange={handleChange} accept="image/*" />
+          {previews.bannerImge && (
+            <div className="mt-2 flex items-center">
+              <img src={previews.bannerImge} alt="Banner Preview" className="max-w-xs h-auto" />
+              <button
+                type="button"
+                onClick={() => handleRemoveImage('bannerImge')}
+                className="ml-2 text-red-500"
+              >
+                <FaTrash />
+              </button>
+            </div>
+          )}
+          {errors.bannerImge && <p className="text-red-500">{errors.bannerImge}</p>}
         </div>
         <button type="submit" className="bg-blue-500 text-white p-2 rounded">
           Update Story

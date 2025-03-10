@@ -177,64 +177,6 @@ const updatePart = async (storyName, partId, updatedPart) => {
   }
 };
 
-  // const updatePart = async (storyName, partId, updatedPart) => {
-  //   const formData = new FormData();
-  //   const story = stories.find((s) => s.name.en === storyName);
-  //   formData.append('storyId', story.id);
-  //   formData.append('partId', partId);
-  //   Object.entries(updatedPart).forEach(([key, value]) => {
-  //     if (key !== 'part' && key !== 'thumbnailImage' && key !== 'coverImage') {
-  //       if (typeof value === 'object') {
-  //         Object.entries(value).forEach(([subKey, subValue]) =>
-  //           formData.append(`${key}${subKey.charAt(0).toUpperCase() + subKey.slice(1)}`, subValue)
-  //         );
-  //       } else {
-  //         formData.append(key, value);
-  //       }
-  //     }
-  //   });
-  //   if (updatedPart.thumbnailImage) formData.append('thumbnailImage', updatedPart.thumbnailImage);
-  //   if (updatedPart.coverImage) formData.append('coverImage', updatedPart.coverImage);
-  //   updatedPart.part.forEach((p, i) => {
-  //     Object.entries(p).forEach(([key, value]) => {
-  //       if (key !== 'image') {
-  //         if (typeof value === 'object') {
-  //           Object.entries(value).forEach(([subKey, subValue]) =>
-  //             formData.append(`${key}${subKey.charAt(0).toUpperCase() + subKey.slice(1)}${i}`, subValue)
-  //           );
-  //         } else {
-  //           formData.append(`${key}${i}`, value);
-  //         }
-  //       }
-  //     });
-  //     if (p.image) formData.append(`partImage${i}`, p.image);
-  //   });
-
-  //   console.log('Sending formData for updatePart:');
-  //   for (let pair of formData.entries()) {
-  //     console.log(`${pair[0]}: ${pair[1]}`);
-  //   }
-
-  //   try {
-  //     const token = Cookies.get('token');
-  //     const response = await axios.post(`${import.meta.env.VITE_API_URL}/parts`, formData, {
-  //       headers: { 'Content-Type': 'multipart/form-data', Authorization: `Bearer ${token}` },
-  //     });
-  //     const updatedStories = stories.map((s) =>
-  //       s.id === story.id
-  //         ? { ...s, parts: { card: s.parts.card.map((p) => (p.id === partId ? response.data.part : p)) } }
-  //         : s
-  //     );
-  //     setStories(updatedStories);
-  //     setFilteredStories(updatedStories);
-  //     setModal({ show: true, message: 'Part updated successfully!' });
-  //     setTimeout(() => setModal({ show: false, message: '' }), 1500);
-  //   } catch (error) {
-  //     console.error('Error updating part:', error.response?.data || error.message);
-  //     setModal({ show: true, message: `Failed to update part: ${error.response?.data?.details || 'Unknown error'}` });
-  //   }
-  // };
-
   const deletePart = async (storyId, partId) => {
     try {
       const token = Cookies.get('token');
