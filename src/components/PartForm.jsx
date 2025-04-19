@@ -789,7 +789,7 @@ const PartForm = ({ stories, addPart, updatePart, deletePart }) => {
                 onClick={addNewPart}
                 className="mt-2 bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded flex items-center gap-2"
               >
-                <Plus size={20} /> Add Another Part
+                <Plus size={20} /> Add Section
               </button>
 
               <div className="mt-6 flex gap-4">

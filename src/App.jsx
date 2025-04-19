@@ -9,6 +9,7 @@ import StoryForm from './components/StoryForm';
 import EditStoryForm from './components/EditStoryForm';
 import PartForm from './components/PartForm';
 import Login from './pages/Login';
+import NotifySubscribers from './pages/notifySubscribers';
 
 function App() {
   const [stories, setStories] = useState([]);
@@ -256,6 +257,7 @@ const updatePart = async (storyName, partId, updatedPart) => {
         <Route path="/add-story" element={<StoryForm addStory={addStory} />} />
         <Route path="/edit-story/:id" element={<EditStoryForm updateStory={updateStory} deleteStory={deleteStory} />} />
         <Route path="/add-part" element={<PartForm stories={filteredStories} addPart={addPart} updatePart={updatePart} deletePart={deletePart} />} />
+        <Route path='/notify-subscribers' element={<NotifySubscribers />} />
       </Routes>
       {modal.show && (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
